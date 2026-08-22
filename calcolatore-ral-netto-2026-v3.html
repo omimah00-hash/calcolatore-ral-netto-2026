@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calcolatore RAL - Netto 2026</title>
+  <style>
+    :root{--bg:#f6f7fb;--card:#fff;--text:#172033;--muted:#657086;--line:#e6e9f0;--blue:#2563eb;--green:#047857;--red:#b91c1c}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+    main{max-width:930px;margin:36px auto;padding:0 16px} h1{font-size:28px;margin:0 0 22px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin:0 0 18px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+    .section{font-size:16px;font-weight:700;margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.full{grid-column:1/-1} @media(max-width:640px){.grid{grid-template-columns:1fr}}
+    label{display:block;font-size:14px;color:var(--muted);margin:0 0 6px}input,select{width:100%;border:1px solid #cfd5e2;border-radius:8px;padding:10px 11px;font:inherit;color:var(--text);background:#fff}input:focus,select:focus{outline:3px solid rgba(37,99,235,.17);border-color:var(--blue)}
+    .check{display:flex;gap:9px;align-items:center;color:var(--text);font-size:14px;cursor:pointer}.check input{width:auto}.btn{width:100%;padding:12px 16px;border:0;border-radius:9px;background:var(--blue);color:#fff;font-weight:700;font-size:15px;cursor:pointer;margin-top:20px}.btn:hover{background:#1d4ed8}
+    .error{color:var(--red);font-size:14px;margin-top:10px;white-space:pre-wrap}.hidden{display:none}.line{display:flex;justify-content:space-between;gap:18px;padding:10px 0;border-bottom:1px solid var(--line)}.line span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums}.line.total{font-weight:700;border-top:2px solid var(--line);margin-top:10px}.line.net{font-size:17px;color:var(--green);font-weight:800;border-top:2px solid var(--line);margin-top:10px}.line.sub{padding-left:16px;color:var(--muted);font-size:14px}.note{color:var(--muted);font-size:12px;margin-top:14px;line-height:1.45}
+    .block-title{font-size:15px;font-weight:700;margin:18px 0 8px}
+    .freccia{text-align:center;color:var(--muted);font-size:13px;margin:6px 0}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Calcolatore RAL → Netto 2026</h1>
+  <section class="card">
+    <div class="section">Dati retributivi</div>
+    <div class="grid">
+      <div><label for="ral">Retribuzione Annua Lorda (RAL) €</label><input id="ral" type="number" min="0" step="0.01" placeholder="Es. 28000"></div>
+      <div><label for="mensilita">Mensilità°°</label><select id="mensilita"><option value="12">12</option><option value="13" selected>13</option><option value="14">14</option></select></div>
+      <div><label for="contratto">Tipo di contratto</label><select id="contratto"><option value="indeterminato">Tempo indeterminato</option><option value="determinato">Tempo determinato</option><option value="apprendista">Apprendistato</option></select></div>
+      <div><label for="regione">Regione</label><select id="regione"></select></div>
+      <div class="full"><label for="comune">Comune (capoluogo)</label><select id="comune"></select></div>
+    </div>
+
+    <div class="section" style="margin-top:22px">Agevolazioni e situazione familiare</div>
+    <div class="grid">
+      <label class="check full"><input id="cuneo" type="checkbox" checked>Applica il beneficio previsto per redditi di lavoro dipendente</label>
+      <div><label for="figli21plus">Figli a carico di età almeno 21 anni</label><input id="figli21plus" type="number" min="0" step="1" value="0"></div>
+      <div><label for="quotaFigli">Quota di detrazione figli (%)</label><input id="quotaFigli" type="number" min="0" max="100" step="1" value="100"></div>
+      <label class="check"><input id="coniuge" type="checkbox">Coniuge a carico</label>
+      <div><label for="altri">Altri familiari a carico</label><input id="altri" type="number" min="0" step="1" value="0"></div>
+      <div><label for="fondo">Contributi fondo pensione annui (€)</label><input id="fondo" type="number" min="0" step="0.01" value="0"></div>
+      <div><label for="premio">Premio di produttività°° (€)</label><input id="premio" type="number" min="0" step="0.01" value="0"></div>
+      <label class="check full"><input id="premioAgev" type="checkbox">Applica imposta sostitutiva sul premio (solo se ne ricorrono i requisiti)</label>
+    </div>
+
+    <button class="btn" id="calcola" type="button">Calcola</button>
+    <div id="errore" class="error"></div>
+  </section>
+
+  <section class="card hidden" id="risultati">
+    <div class="line"><span>Retribuzione Annua Lorda (RAL)</span><span id="outRal"></span></div>
+    <div class="line"><span>+ Premio di produttività°°</span><span id="outPremio"></span></div>
+    <div class="line"><span>− Contributi INPS</span><span id="outInps"></span></div>
+    <div class="line"><span>− Fondo pensione deducibile</span><span id="outFondo"></span></div>
+    <div class="line"><span>= Imponibile IRPEF</span><span id="outImponibile"></span></div>
+
+    <div class="block-title">Calcolo IRPEF</div>
+    <div class="line"><span>IRPEF lorda (su imponibile)</span><span id="outIrpefLorda"></span></div>
+    <div class="freccia">− Detrazioni (lavoro, coniuge, figli, altri)</div>
+    <div class="line sub"><span>− Detrazione lavoro dipendente</span><span id="outDetLavoro"></span></div>
+    <div class="line sub"><span>− Detrazione coniuge</span><span id="outDetConiuge"></span></div>
+    <div class="line sub"><span>− Detrazione figli</span><span id="outDetFigli"></span></div>
+    <div class="line sub"><span>− Detrazione altri familiari</span><span id="outDetAltri"></span></div>
+    <div class="line total"><span>= IRPEF netta</span><span id="outIrpefNetta"></span></div>
+
+    <div class="block-title">Addizionali e benefici</div>
+    <div class="line"><span>+ Beneficio lavoro dipendente</span><span id="outCuneo"></span></div>
+    <div class="line"><span>− Addizionale regionale</span><span id="outReg"></span></div>
+    <div class="line"><span>− Addizionale comunale</span><span id="outCom"></span></div>
+
+    <div class="line total"><span>Totale trattenute nette</span><span id="outTratt"></span></div>
+    <div class="line net"><span>Netto annuale percepito</span><span id="outNetto"></span></div>
+    <div class="line net"><span>Netto mensile percepito</span><span id="outMensile"></span></div>
+
+    <p class="note">Stima semplificata per dipendente privato. Il risultato non sostituisce busta paga, CU o consulenza professionale: CCNL, imponibili reali, giorni di detrazione, detrazioni regionali e comunali, premi e welfare possono modificare l'importo.</p>
+  </section>
+</main>
+<script>
+const regioni={"Abruzzo":[[28000,.0167],[50000,.0287],[Infinity,.0333]],"Basilicata":[[Infinity,.0123]],"Provincia autonoma di Bolzano":[[28000,.0123],[50000,.0158],[Infinity,.0173]],"Calabria":[[Infinity,.0173]],"Campania":[[28000,.0173],[50000,.0296],[Infinity,.0333]],"Emilia-Romagna":[[15000,.0133],[28000,.0233],[50000,.0333],[Infinity,.0333]],"Friuli-Venezia Giulia":[[15000,.007],[28000,.01],[Infinity,.0123]],"Lazio":[[28000,.0173],[50000,.0333],[Infinity,.0333]],"Liguria":[[28000,.0123],[50000,.0323],[Infinity,.0323]],"Lombardia":[[15000,.0123],[28000,.0158],[50000,.0172],[Infinity,.0173]],"Marche":[[15000,.0123],[28000,.0158],[50000,.0173],[Infinity,.0173]],"Molise":[[28000,.0203],[50000,.0333],[Infinity,.0363]],"Piemonte":[[15000,.0162],[28000,.0233],[50000,.0333],[Infinity,.0333]],"Puglia":[[15000,.0133],[28000,.0233],[50000,.0333],[Infinity,.0333]],"Sardegna":[[Infinity,.0123]],"Sicilia":[[Infinity,.0123]],"Toscana":[[15000,.0142],[28000,.0233],[50000,.0333],[Infinity,.0333]],"Provincia autonoma di Trento":[[28000,.0123],[50000,.0158],[Infinity,.0173]],"Umbria":[[28000,.0123],[50000,.0333],[Infinity,.0333]],"Valle d'Aosta":[[Infinity,.0123]],"Veneto":[[Infinity,.0123]]};
+const capoluoghi={"Abruzzo":[["L'Aquila",.006,15000],["Chieti",.008,0],["Pescara",.008,10000],["Teramo",.008,10000]],"Basilicata":[["Matera",.008,10000],["Potenza",.009,0]],"Provincia autonoma di Bolzano":[["Bolzano",0,0]],"Calabria":[["Catanzaro",.008,0],["Cosenza",.008,0],["Reggio di Calabria",.008,0],["Vibo Valentia",.012,7000]],"Campania":[["Avellino",.01,20000],["Benevento",.008,0],["Caserta",.008,0],["Napoli",.01,12000],["Salerno",.011,10000]],"Emilia-Romagna":[["Bologna",.008,15000],["Ferrara",.008,0],["Forli",.0079,15000],["Modena",.008,15000],["Parma",.008,12000],["Piacenza",.008,0],["Ravenna",.008,13000],["Reggio nell'Emilia",.008,15000],["Rimini",.008,16000]],"Friuli-Venezia Giulia":[["Gorizia",.007,15000],["Pordenone",.006,20000],["Trieste",.008,12500],["Udine",.008,15000]],"Lazio":[["Frosinone",.008,0],["Latina",.008,8000],["Rieti",.008,0],["Roma",.009,14000],["Viterbo",.008,0]],"Liguria":[["Genova",.012,14000],["Imperia",.008,0],["La Spezia",.008,15000],["Savona",.008,10000]],"Lombardia":[["Bergamo",.008,0],["Brescia",.008,13000],["Como",.01,15000],["Cremona",.008,12000],["Lecco",.008,17000],["Lodi",.008,17000],["Mantova",.008,22000],["Milano",.008,23000],["Monza",.008,15000],["Pavia",.008,16000],["Sondrio",.008,10000],["Varese",.008,8000]],"Marche":[["Ancona",.008,0],["Ascoli Piceno",.008,8500],["Fermo",.008,9000],["Macerata",.008,8500],["Pesaro",.008,9000]],"Molise":[["Campobasso",.008,0],["Isernia",.008,0]],"Piemonte":[["Alessandria",.012,0],["Asti",.0079,7500],["Biella",.008,0],["Cuneo",.008,0],["Novara",.008,12500],["Torino",.012,11790],["Verbania",.008,15000],["Vercelli",.008,12500]],"Puglia":[["Bari",.008,15000],["Barletta",.008,9000],["Brindisi",.012,10000],["Foggia",.008,0],["Lecce",.012,0],["Taranto",.008,0],["Trani",.008,8000]],"Sardegna":[["Cagliari",.008,10000],["Nuoro",.008,8000],["Oristano",.008,10000],["Sassari",.008,15000]],"Sicilia":[["Agrigento",.008,7500],["Caltanissetta",.008,0],["Catania",.008,7500],["Enna",.008,23000],["Messina",.008,0],["Palermo",.01014,0],["Ragusa",.008,0],["Siracusa",.008,0],["Trapani",.008,10000]],"Toscana":[["Arezzo",.0079,13500],["Firenze",.008,25000],["Grosseto",.008,0],["Livorno",.008,0],["Lucca",.0079,14500],["Massa",.008,12000],["Pisa",.008,15000],["Pistoia",.008,15000],["Prato",.005,0],["Siena",.008,12000]],"Provincia autonoma di Trento":[["Trento",0,0]],"Umbria":[["Perugia",.008,0],["Terni",.008,12500]],"Valle d'Aosta":[["Aosta",.005,10000]],"Veneto":[["Belluno",.008,12000],["Padova",.008,15000],["Rovigo",.008,10000],["Treviso",.008,16000],["Venezia",.008,10000],["Verona",.008,12000],["Vicenza",.008,15000]]};
+const $=id=>document.getElementById(id), euro=n=>n.toLocaleString('it-IT',{style:'currency',currency:'EUR'}), neg=n=>'− '+euro(n), pos=n=>'+ '+euro(n);
+const selReg=$('regione'),selCom=$('comune');
+Object.keys(regioni).sort().forEach(r=>selReg.add(new Option(r,r)));
+function popolaComuni(){selCom.innerHTML='';(capoluoghi[selReg.value]||[]).forEach((c,i)=>selCom.add(new Option(c[0],String(i))));}popolaComuni();selReg.addEventListener('change',popolaComuni);
+function progressivo(base,fasce){let tot=0,prev=0;for(const [max,rate] of fasce){const quota=Math.max(0,Math.min(base,max)-prev);tot+=quota*rate;prev=max;if(base<=max)break;}return tot;}
+function irpefLorda(x){return progressivo(x,[[28000,.23],[50000,.33],[Infinity,.43]]);}
+function detLavoro(x,tipo){let d=0;if(x<=15000)d=1955;else if(x<=28000)d=1910+1190*(28000-x)/13000;else if(x<=50000)d=1910*(50000-x)/22000;const min=tipo==='determinato'?1380:690;return x<=50000?Math.max(d,min):0;}
+function detConiuge(x){if(x<=15000)return Math.max(0,800-110*x/15000);if(x<=40000)return 690;if(x<=80000)return 690*(80000-x)/40000;return 0;}
+function detFigli(x,n,q){if(x>=95000)return 0;return n*950*Math.max(0,(95000-x)/95000)*(q/100);}
+function detAltri(x,n){return x>=80000?0:n*750*Math.max(0,(80000-x)/80000);}
+function beneficioLavoro(x){if(x<=20000){const p=x<=8500?.071:x<=15000?.053:x<=20000?.048:0;return x*p;}if(x<=32000)return 1000;if(x<=40000)return 1000*(40000-x)/8000;return 0;}
+$('calcola').addEventListener('click',()=>{try{$('errore').textContent='';const ral=Number($('ral').value),mens=Number($('mensilita').value),tipo=$('contratto').value;if(!(ral>0))throw new Error('Inserisci una RAL valida.');const premio=Math.max(0,Number($('premio').value)||0),fondo=Math.min(Math.max(0,Number($('fondo').value)||0),5164.57),inpsRate=tipo==='apprendista'?.0584:.0919,inps=ral*inpsRate;const imponibile=Math.max(0,ral+premio-inps-fondo);let lorda=irpefLorda(imponibile);if($('premioAgev').checked&&premio>0){lorda=irpefLorda(Math.max(0,imponibile-premio))+premio*.10;}const dl=detLavoro(imponibile,tipo),dc=$('coniuge').checked?detConiuge(imponibile):0,df=detFigli(imponibile,Math.max(0,Number($('figli21plus').value)||0),Math.min(100,Math.max(0,Number($('quotaFigli').value)||0))),da=detAltri(imponibile,Math.max(0,Number($('altri').value)||0));const detTot=dl+dc+df+da,irpef=Math.max(0,lorda-detTot),cuneo=$('cuneo').checked?beneficioLavoro(imponibile):0,reg=progressivo(imponibile,regioni[selReg.value]),com=capoluoghi[selReg.value][Number(selCom.value)],addCom=imponibile<=com[2]?0:imponibile*com[1],tratt=inps+fondo+irpef+reg+addCom-cuneo,netto=ral+premio-tratt;const out={outRal:euro(ral),outPremio:pos(premio),outInps:neg(inps),outFondo:neg(fondo),outImponibile:euro(imponibile),outIrpefLorda:euro(lorda),outDetLavoro:neg(dl),outDetConiuge:neg(dc),outDetFigli:neg(df),outDetAltri:neg(da),outIrpefNetta:neg(irpef),outCuneo:pos(cuneo),outReg:neg(reg),outCom:neg(addCom),outTratt:euro(tratt),outNetto:euro(netto),outMensile:euro(netto/mens)};Object.entries(out).forEach(([id,v])=>$(id).textContent=v);$('risultati').classList.remove('hidden');$('risultati').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){$('errore').textContent='Errore nel calcolo: '+e.message;console.error(e);}});
+</script>
+</body>
+</html>
